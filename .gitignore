@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+venv/
+.venv/
+streamlit.toml
+embeddings.pt
+movies.pkl
+.DS_Store
+Thumbs.db
+IMDB-Movie-Data-Extended.csv
+*.csv
