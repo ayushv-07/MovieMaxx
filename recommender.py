@@ -1,35 +1,60 @@
 import streamlit as st
 import pandas as pd
 import torch
-from sentence_transformers import SentenceTransformer, util
+import torch.nn.functional as F
+
 
 @st.cache_resource
 def load_resources():
-    model = SentenceTransformer("all-MiniLM-L6-v2")
+    # Load saved dataset
     df = pd.read_pickle("movies.pkl")
-    embeddings = torch.load("embeddings.pt", map_location="cpu")
 
-    indices = pd.Series(df.index, index=df["Title"]).drop_duplicates()
+    # Load saved embeddings
+    embeddings = torch.load(
+        "embeddings.pt",
+        map_location="cpu"
+    )
 
-    return model, df, embeddings, indices
+    # Normalize ONCE
+    embeddings = F.normalize(embeddings, p=2, dim=1)
 
-model, df, embeddings, indices = load_resources()
+    # Create title index
+    indices = pd.Series(
+        df.index,
+        index=df["Title"]
+    ).drop_duplicates()
+
+    return df, embeddings, indices
+
+
+df, embeddings, indices = load_resources()
+
 
 def recommend(movie_name):
+
     if movie_name not in indices:
         return pd.DataFrame()
 
     idx = indices[movie_name]
 
-    # Compare the selected movie with all others
-    cosine_scores = util.cos_sim(embeddings[idx], embeddings)[0]
+    # Fast cosine similarity using dot product
+    cosine_scores = torch.matmul(
+        embeddings,
+        embeddings[idx]
+    )
 
-    # Get top 6 (including itself)
-    top_results = torch.topk(cosine_scores, k=6)
+    # Get top 6
+    top_results = torch.topk(
+        cosine_scores,
+        k=6
+    )
 
     movie_indices = top_results.indices.cpu().numpy()
 
     # Remove the selected movie
-    movie_indices = [i for i in movie_indices if i != idx][:5]
+    movie_indices = [
+        i for i in movie_indices
+        if i != idx
+    ][:5]
 
     return df.iloc[movie_indices]

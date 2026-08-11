@@ -6,7 +6,11 @@ st.set_page_config(
     page_title=" AI Movie Recommendation System",
     page_icon="🎬",
     layout="wide"
-)# ---------- Watchlist ----------
+)
+@st.cache_data(ttl=86400)
+def get_cached_movie_data(title):
+    return get_movie_data(title)
+# ---------- Watchlist ----------
 if "watchlist" not in st.session_state:
     st.session_state.watchlist = []
 
@@ -50,7 +54,7 @@ st.sidebar.info("""
 IMDb Movie Dataset
 
 **👨‍💻 Developed By**
-Ayush Verma
+Anurag Singh
 """)
 st.sidebar.header("❤️ My Watchlist")
 
@@ -68,15 +72,15 @@ movie_list = sorted(recommender.df["Title"].tolist())
 
 movie = st.selectbox(
     "🎥 Choose a Movie",
-    sorted(recommender.df["Title"].tolist()),
+    movie_list,
     index=None,
     placeholder="Select a movie..."
 )
 
 if movie:
 
-   with st.spinner("🍿 Finding similar movies..."):
-    recommendations = recommender.recommend(movie)
+    with st.spinner("🍿 Finding similar movies..."):
+        recommendations = recommender.recommend(movie)
 
     st.subheader("Recommended Movies")
 
@@ -84,7 +88,7 @@ if movie:
 
     for i, (_, row) in enumerate(recommendations.iterrows()):
 
-        movie_data = get_movie_data(row["Title"])
+        movie_data = get_cached_movie_data(row["Title"])
 
         with cols[i]:
 
